@@ -1,0 +1,950 @@
+import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_app/flipKartUi/buyer/buyer_profile/buyperprofileview.dart';
+import 'package:firebase_app/flipKartUi/buyer/constants.dart';
+import 'package:firebase_app/flipKartUi/model/usermodel.dart';
+import 'package:firebase_app/widgets/list_student.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
+
+var emailidofcurrentuser = FirebaseAuth.instance.currentUser!.email;
+var idofcurrentuser = FirebaseAuth.instance.currentUser!.uid;
+
+// ignore: must_be_immutable
+class BuyerProfile extends StatefulWidget {
+  String? name;
+  String? email;
+  String? currentuserid;
+  String? moblienumber;
+  String? pin;
+  String? address;
+  String? state;
+  String? imageurl;
+
+  BuyerProfile(
+      {this.name,
+      this.imageurl,
+      this.email,
+      this.moblienumber,
+      this.address,
+      this.pin,
+      this.state,
+      this.currentuserid,
+      Key? key})
+      : super(key: key);
+
+  @override
+  State<BuyerProfile> createState() => _BuyerProfileState();
+}
+
+class _BuyerProfileState extends State<BuyerProfile> {
+  PlatformFile? pickedFile;
+  UploadTask? uploadTask;
+  Image? selectedimage = null;
+
+  //final _namecontroller = TextEditingController();
+  // final _addresscontroller = TextEditingController();
+  // final _mobilecontroller = TextEditingController();
+  // final _pincontroller = TextEditingController();
+  // final _statecontroller = TextEditingController();
+  // final _emailcontroller = TextEditingController(text: emailidofcurrentuser);
+  @override
+  Widget build(BuildContext context) {
+    // var imageurl =widget.imageurl;
+    // final String? idvariable = widget.currentuserid;
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: backgroundcolor,
+        elevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Builder(
+            builder: (BuildContext ctx) {
+              return IconButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                icon: const Icon(Icons.arrow_back),
+                color: iconcolor,
+              );
+            },
+          ),
+        ),
+        title: Text(
+          'ShopKart',
+          style: TextStyle(color: textcolor),
+        ),
+        actions: [
+          IconButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                    MaterialPageRoute(builder: (ctx) => const ProfileView()));
+              },
+              icon: Icon(
+                Icons.edit_note,
+                color: iconcolor,
+              ))
+        ],
+      ),
+      body: Container(
+        child: StreamBuilder<List<UserDetails>>(
+            stream: readUserdetails(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                final userd = snapshot.data!;
+                return ListView(children: userd.map(buildProfile).toList());
+              } else if (snapshot.hasError) {
+                return const Text('Something went wrong......!');
+              } else {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+            }),
+      ),
+    );
+  }
+
+  Widget buildProfile(UserDetails userr) => SizedBox(
+        child: Column(
+          children: [
+             Padding(
+                                   padding: EdgeInsets.only(left: 25.0),
+                                   child: Text('User Profile',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 20.0,
+                                           fontFamily: 'sans-serif-light',
+                                             color: Colors.black)),
+                       ),
+                         Padding(
+                            padding: const EdgeInsets.only(top: 20.0),
+                            child: Stack(fit: StackFit.loose, children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ClipRRect(
+                                      clipBehavior: Clip.hardEdge,
+                                      borderRadius: BorderRadius.circular(100),
+                                      child: Builder(builder: (context) {
+                                        if (selectedimage == null) {
+                                          return SizedBox(
+                                            height: 150,
+                                            width: 150,
+                                            child:
+                                                Center(child: Text('Preview')),
+                                          );
+                                        } else {
+                                          return SizedBox(
+                                              height: 150,
+                                              width: 150,
+                                              child: selectedimage);
+                                        }
+                                      })),
+                                ],
+                              ),
+                              Padding(
+                                  padding: const EdgeInsets.only(
+                                      top: 100.0, left: 100.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      CircleAvatar(
+                                          backgroundColor: Color.fromARGB(
+                                              255, 255, 255, 255),
+                                          radius: 23.0,
+                                          child: IconButton(
+                                              onPressed: selectFile,
+                                              icon: Icon(
+                                                Icons.photo_camera,
+                                                color: iconcolor,
+                                              )))
+                                    ],
+                                  )),
+                            ]),
+                          )
+                        ],
+                      ),
+                    ),
+                    Container(
+                      color: const Color(0xffFFFFFF),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 25.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 25.0),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        Text(
+                                          'Personal Information',
+                                          style: TextStyle(
+                                              fontSize: 18.0,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )),
+                       
+                                
+  
+            
+                       
+                          Padding(
+                            padding: const EdgeInsets.only(top: 20.0),
+                            child: Stack(fit: StackFit.loose, children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ClipRRect(
+                                      clipBehavior: Clip.hardEdge,
+                                      borderRadius: BorderRadius.circular(100),
+                                      child: Builder(builder: (context) {
+                                        if (selectedimage == null) {
+                                          return SizedBox(
+                                            height: 150,
+                                            width: 150,
+                                            child:
+                                                Center(child: Text('Preview')),
+                                          );
+                                        } else {
+                                          return SizedBox(
+                                              height: 150,
+                                              width: 150,
+                                              child: selectedimage);
+                                        }
+                                      })),
+                                ],
+                              ),
+                              Padding(
+                                  padding: const EdgeInsets.only(
+                                      top: 100.0, left: 100.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      CircleAvatar(
+                                          backgroundColor: Color.fromARGB(
+                                              255, 255, 255, 255),
+                                          radius: 23.0,
+                                          child: IconButton(
+                                              onPressed: selectFile,
+                                              icon: Icon(
+                                                Icons.photo_camera,
+                                                color: iconcolor,
+                                              )))
+                                    ],
+                                  )),
+                            ]),
+                          )
+                        ],
+                      ),
+                    ),
+            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 25.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        Text(
+                                          'Name',
+                                          style: TextStyle(
+                                              fontSize: 16.0,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )),
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 2.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Flexible(
+                                      child: TextFormField(
+                                        //initialValue: widget.name,
+                                        //controller: _namecontroller,
+                                        decoration: const InputDecoration(
+                                          hintText: "Name",
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )),
+
+                                
+
+
+
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 25.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        Text(
+                                          'Email ID',
+                                          style: TextStyle(
+                                              fontSize: 16.0,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )),
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 2.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Flexible(
+                                      child: TextField(
+                                        enabled: false,
+                                       // controller: _emailcontroller,
+                                        decoration: const InputDecoration(
+                                            hintText: "Enter Email ID"),
+                                      ),
+                                    ),
+                                  ],
+                                )),
+
+
+
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 25.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        Text(
+                                          'Shipping Address',
+                                          style: TextStyle(
+                                              fontSize: 16.0,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )),
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 2.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Flexible(
+                                      child: TextField(
+                                        maxLines: 3,
+                                        maxLength: 300,
+                                        //controller: _addresscontroller,
+                                        decoration: const InputDecoration(
+                                            hintText: "Enter Address...."),
+                                      ),
+                                    ),
+                                  ],
+                                )),
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 25.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        Text(
+                                          'Mobile',
+                                          style: TextStyle(
+                                              fontSize: 16.0,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )),
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 2.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Flexible(
+                                      child: TextField(
+                                       // controller: _mobilecontroller,
+                                        decoration: const InputDecoration(
+                                            hintText: "Enter Mobile Number"),
+                                      ),
+                                    ),
+                                  ],
+                                )),
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 25.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        child: const Text(
+                                          'Pin Code',
+                                          style: TextStyle(
+                                              fontSize: 16.0,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                      flex: 2,
+                                    ),
+                                    Expanded(
+                                      child: Container(
+                                        child: const Text(
+                                          'State',
+                                          style: TextStyle(
+                                              fontSize: 16.0,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                      flex: 2,
+                                    ),
+                                  ],
+                                )),
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 2.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    Flexible(
+                                      child: Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 10.0),
+                                        child: TextField(
+                                          //controller: _pincontroller,
+                                          decoration: const InputDecoration(
+                                              hintText: "Enter Pin Code"),
+                                        ),
+                                      ),
+                                      flex: 2,
+                                    ),
+                                    Flexible(
+                                      child: TextField(
+                                        //controller: _statecontroller,
+                                        decoration: const InputDecoration(
+                                            hintText: "Enter State"),
+                                      ),
+                                      flex: 2,
+                                    ),
+                                  ],
+                                )),
+                            const SizedBox(
+                              height: 30,
+                            ),
+          ],
+        ),
+      );
+    child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Container(
+            color: Colors.white,
+            child: ListView(
+              children: [
+                Column(
+                  children: [
+                    Container(
+                      height: 250.0,
+                      color: Colors.white,
+                      child: Column(
+                        children: [
+
+
+
+
+
+
+
+
+
+
+
+
+                          Padding(
+                              padding:
+                                  const EdgeInsets.only(left: 20.0, top: 20.0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: const [
+                                  Padding(
+                                    padding: EdgeInsets.only(left: 25.0),
+                                    child: Text('User Profile',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 20.0,
+                                            fontFamily: 'sans-serif-light',
+                                            color: Colors.black)),
+                                  )
+                                ],
+                              )),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 20.0),
+                            child: Stack(fit: StackFit.loose, children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ClipRRect(
+                                      clipBehavior: Clip.hardEdge,
+                                      borderRadius: BorderRadius.circular(100),
+                                      child: Builder(builder: (context) {
+                                        if (selectedimage == null) {
+                                          return SizedBox(
+                                            height: 150,
+                                            width: 150,
+                                            child:
+                                                Center(child: Text('Preview')),
+                                          );
+                                        } else {
+                                          return SizedBox(
+                                              height: 150,
+                                              width: 150,
+                                              child: selectedimage);
+                                        }
+                                      })),
+                                ],
+                              ),
+                              Padding(
+                                  padding: const EdgeInsets.only(
+                                      top: 100.0, left: 100.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      CircleAvatar(
+                                          backgroundColor: Color.fromARGB(
+                                              255, 255, 255, 255),
+                                          radius: 23.0,
+                                          child: IconButton(
+                                              onPressed: selectFile,
+                                              icon: Icon(
+                                                Icons.photo_camera,
+                                                color: iconcolor,
+                                              )))
+                                    ],
+                                  )),
+                            ]),
+                          )
+                        ],
+                      ),
+                    ),
+                    Container(
+                      color: const Color(0xffFFFFFF),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 25.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 25.0),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        Text(
+                                          'Personal Information',
+                                          style: TextStyle(
+                                              fontSize: 18.0,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )),
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 25.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        Text(
+                                          'Name',
+                                          style: TextStyle(
+                                              fontSize: 16.0,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )),
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 2.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Flexible(
+                                      child: TextFormField(
+                                        //initialValue: widget.name,
+                                        controller: _namecontroller,
+                                        decoration: const InputDecoration(
+                                          hintText: "Name",
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )),
+
+
+
+
+
+
+
+
+
+
+
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 25.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        Text(
+                                          'Email ID',
+                                          style: TextStyle(
+                                              fontSize: 16.0,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )),
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 2.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Flexible(
+                                      child: TextField(
+                                        enabled: false,
+                                        controller: _emailcontroller,
+                                        decoration: const InputDecoration(
+                                            hintText: "Enter Email ID"),
+                                      ),
+                                    ),
+                                  ],
+                                )),
+
+
+
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 25.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        Text(
+                                          'Shipping Address',
+                                          style: TextStyle(
+                                              fontSize: 16.0,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )),
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 2.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Flexible(
+                                      child: TextField(
+                                        maxLines: 3,
+                                        maxLength: 300,
+                                        controller: _addresscontroller,
+                                        decoration: const InputDecoration(
+                                            hintText: "Enter Address...."),
+                                      ),
+                                    ),
+                                  ],
+                                )),
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 25.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        Text(
+                                          'Mobile',
+                                          style: TextStyle(
+                                              fontSize: 16.0,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )),
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 2.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Flexible(
+                                      child: TextField(
+                                        controller: _mobilecontroller,
+                                        decoration: const InputDecoration(
+                                            hintText: "Enter Mobile Number"),
+                                      ),
+                                    ),
+                                  ],
+                                )),
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 25.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        child: const Text(
+                                          'Pin Code',
+                                          style: TextStyle(
+                                              fontSize: 16.0,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                      flex: 2,
+                                    ),
+                                    Expanded(
+                                      child: Container(
+                                        child: const Text(
+                                          'State',
+                                          style: TextStyle(
+                                              fontSize: 16.0,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                      flex: 2,
+                                    ),
+                                  ],
+                                )),
+                            Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 25.0, right: 25.0, top: 2.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    Flexible(
+                                      child: Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 10.0),
+                                        child: TextField(
+                                          controller: _pincontroller,
+                                          decoration: const InputDecoration(
+                                              hintText: "Enter Pin Code"),
+                                        ),
+                                      ),
+                                      flex: 2,
+                                    ),
+                                    Flexible(
+                                      child: TextField(
+                                        controller: _statecontroller,
+                                        decoration: const InputDecoration(
+                                            hintText: "Enter State"),
+                                      ),
+                                      flex: 2,
+                                    ),
+                                  ],
+                                )),
+                            const SizedBox(
+                              height: 30,
+                            ),
+                            Center(
+                              child: SizedBox(
+                                height: 50,
+                                width: 350,
+                                child: ElevatedButton(
+                                    onPressed: () {
+                                      final namevar = _namecontroller.text;
+                                      addimage(idofcurrentuser, namevar);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                        primary: const Color.fromARGB(
+                                            255, 0, 128, 255),
+                                        shape: const StadiumBorder()),
+                                    child: const Text('Update Profile')),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );,
+  );
+  Builder(builder: (context) {
+
+        return
+      }
+     );
+
+  Stream<List<UserDetails>> readUserdetails() => FirebaseFirestore.instance
+      .collection('UserDetailsList')
+      .where('id', isEqualTo: user.uid)
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+          .map((doc) => UserDetails.fromJson(doc.data()))
+          .toList());
+
+  Future selectFile() async {
+    final result = await FilePicker.platform.pickFiles();
+    if (result == null) return;
+
+    setState(() {
+      pickedFile = result.files.first;
+    });
+    setState(() {
+      // fileselecterindicator = pickedFile!.name;
+      selectedimage = Image.file(
+        File(pickedFile!.path!),
+      );
+    });
+  }
+
+  Future addimage(String? userid, String name) async {
+    final file = File(pickedFile!.path!);
+    final path = 'userimage/${pickedFile!.name}';
+    final ref = FirebaseStorage.instance.ref().child(path);
+    setState(() {
+      uploadTask = ref.putFile(file);
+    });
+    final snapshort = await uploadTask!.whenComplete(() {});
+    final urldownload = await snapshort.ref.getDownloadURL();
+    //print('Dounload url : $urldownload');
+    // updateuserdetials(urldownload, userid,name);
+  }
+
+  // Future updateuserdetials(String url, String? userid,String name) async {
+  //   final userd = FirebaseFirestore.instance.collection('UserDetials').doc(userid);
+  //   if (_addresscontroller.text.isEmpty) {
+  //     return;
+  //   }
+  //   if (_mobilecontroller.text.isEmpty) {
+  //     return;
+  //   }
+  //   if (_pincontroller.text.isEmpty) {
+  //     return;
+  //   }
+  //   if (_statecontroller.text.isEmpty) {
+  //     return;
+  //   }
+
+  //   final userdetilaslist = UserDetails(
+  //       id: userd.toString(),
+  //       name: name,
+  //       profileimage: url,
+  //       address: _addresscontroller.text,
+  //       email: email.toString(),
+  //       moblieno: _mobilecontroller.text,
+  //       pincode: _pincontroller.text,
+  //       state: _statecontroller.text);
+
+  //   final json = userdetilaslist.toJson();
+  //   await userd.set(json);
+  // }
+
+}
+
+ const SizedBox(
+                              height: 30,
+                            ),
+                            Center(
+                              child: SizedBox(
+                                height: 50,
+                                width: 350,
+                                child: ElevatedButton(
+                                    onPressed: () {
+                                      final namevar = _namecontroller.text;
+                                      addimage(idofcurrentuser, namevar);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                        primary: const Color.fromARGB(
+                                            255, 0, 128, 255),
+                                        shape: const StadiumBorder()),
+                                    child: const Text('Update Profile')),
+                              ),
+                            ),
+                          ],
